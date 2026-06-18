@@ -4,10 +4,10 @@ import { createClient } from '@/lib/supabase/client'
 import type { ReactionEmoji } from '@/lib/types/database'
 import { cn } from '@/lib/utils/cn'
 
-const REACTIONS: { emoji: string; key: ReactionEmoji; label: string }[] = [
-  { emoji: '🤤', key: 'drool', label: 'Drool' },
-  { emoji: '🥺', key: 'plead', label: 'Plead' },
-  { emoji: '😐', key: 'neutral', label: 'Neutral' },
+const REACTIONS: { emoji: string; key: ReactionEmoji }[] = [
+  { emoji: '🤤', key: 'drool' },
+  { emoji: '🥺', key: 'plead' },
+  { emoji: '😐', key: 'neutral' },
 ]
 
 interface Props {
@@ -38,21 +38,33 @@ export default function ReactionBar({ postId, myReaction: initialReaction, count
     }
   }
 
+  const total = Object.values(counts).reduce((a,b) => a+b, 0)
+
   return (
-    <div className="flex items-center gap-3">
-      {REACTIONS.map(({ emoji, key }) => (
-        <button
-          key={key}
-          onClick={() => toggleReaction(key)}
-          className={cn(
-            'flex items-center gap-1 px-3 py-2 rounded-full text-sm font-bold font-body transition-all active:scale-90',
-            myReaction === key ? 'bg-bite-purple text-white shadow-bubbly' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          )}
-        >
-          <span>{emoji}</span>
-          <span>{counts[key]}</span>
-        </button>
-      ))}
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        {REACTIONS.map(({ emoji, key }) => {
+          const active = myReaction === key
+          return (
+            <button
+              key={key}
+              onClick={() => toggleReaction(key)}
+              className={cn(
+                'flex-1 flex flex-col items-center gap-1 py-3 rounded-2xl text-2xl font-bold transition-all btn-press',
+                active
+                  ? 'bg-bite-purple text-white shadow-purple scale-105'
+                  : 'bg-gray-50 hover:bg-bite-purple/10'
+              )}
+            >
+              <span>{emoji}</span>
+              <span className={cn('text-xs font-body', active ? 'text-white' : 'text-gray-500')}>{counts[key]}</span>
+            </button>
+          )
+        })}
+      </div>
+      {total > 0 && (
+        <p className="text-center text-xs text-gray-400 font-body">{total}人がリアクション ✨</p>
+      )}
     </div>
   )
 }

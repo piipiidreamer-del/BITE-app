@@ -1,8 +1,8 @@
 'use client'
 import { useState } from 'react'
-import { motion, useMotionValue, useTransform } from 'framer-motion'
 import type { Post, ReactionEmoji } from '@/lib/types/database'
 import FeedCard from './FeedCard'
+import Link from 'next/link'
 
 interface PostWithMeta extends Post {
   myReaction: ReactionEmoji | null
@@ -16,55 +16,73 @@ interface Props {
 
 export default function FeedStack({ posts, myUserId }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [viewedIndices, setViewedIndices] = useState<Set<number>>(new Set())
 
   if (posts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6">
-        <div className="text-6xl">🍽️</div>
-        <h3 className="font-display text-2xl text-bite-purple">No bites yet!</h3>
-        <p className="font-body text-gray-500 text-sm">Add some friends to see their meals here.</p>
+      <div className="flex flex-col items-center justify-center h-full gap-5 text-center px-6 py-10">
+        <div className="w-24 h-24 rounded-[2rem] bg-bite-purple/10 flex items-center justify-center text-5xl float">🍽️</div>
+        <div>
+          <h3 className="font-display text-2xl text-bite-purple mb-1">友達の投稿がないよ！</h3>
+          <p className="font-body text-gray-400 text-sm">友達を追加して、みんなのBiteを見よう</p>
+        </div>
+        <Link href="/friends" className="bg-bite-purple text-white font-bold font-body px-6 py-3 rounded-3xl text-sm shadow-purple btn-press">
+          友達を探す 👥
+        </Link>
       </div>
     )
   }
 
-  function handleNext() {
-    setViewedIndices(prev => new Set(prev).add(currentIndex))
-    setCurrentIndex(prev => Math.min(prev + 1, posts.length - 1))
-  }
-
-  const visibleCards = posts.slice(currentIndex, currentIndex + 3)
+  const done = currentIndex >= posts.length
+  // Show up to 3 cards in the stack (top + 2 peeking behind)
+  const visiblePosts = posts.slice(currentIndex, currentIndex + 3)
 
   return (
-    <div className="relative w-full h-full">
-      {visibleCards.map((post, i) => (
-        <FeedCard
-          key={post.id}
-          post={post}
-          myUserId={myUserId}
-          myReaction={post.myReaction}
-          reactionCounts={post.reactionCounts}
-          isViewed={viewedIndices.has(currentIndex + i)}
-          onNext={handleNext}
-          stackIndex={i}
-        />
-      ))}
-      {currentIndex >= posts.length && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center">
-          <div className="text-6xl">🎉</div>
-          <h3 className="font-display text-2xl text-bite-purple">You&apos;re all caught up!</h3>
-          <p className="font-body text-gray-500 text-sm">Come back tomorrow for more bites.</p>
+    <div className="flex flex-col h-full">
+      {/* Counter */}
+      <div className="flex items-center justify-between mb-3 px-1">
+        <span className="text-xs font-body text-gray-400">
+          {done ? '全部チェック済み ✓' : `${currentIndex + 1} / ${posts.length}`}
+        </span>
+        <div className="flex gap-1">
+          {posts.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1.5 rounded-full transition-all ${i < currentIndex ? 'bg-gray-300 w-1.5' : i === currentIndex ? 'bg-bite-purple w-5' : 'bg-gray-200 w-1.5'}`}
+            />
+          ))}
         </div>
-      )}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-        {posts.map((_, i) => (
-          <div
-            key={i}
-            className={`w-2 h-2 rounded-full transition-all ${
-              i === currentIndex ? 'bg-bite-purple w-4' : viewedIndices.has(i) ? 'bg-gray-300' : 'bg-gray-200'
-            }`}
-          />
-        ))}
+      </div>
+
+      {/* Card stack area */}
+      <div className="relative flex-1" style={{ minHeight: '520px' }}>
+        {done ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 text-center">
+            <div className="text-7xl bounce-in">🎉</div>
+            <div>
+              <h3 className="font-display text-2xl text-bite-purple mb-1">全部見たよ！</h3>
+              <p className="font-body text-gray-400 text-sm">明日また来てね 🍳</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Render stack in reverse so top card is last (on top) */}
+            {[...visiblePosts].reverse().map((post, reversedIdx) => {
+              const stackIdx = visiblePosts.length - 1 - reversedIdx
+              return (
+                <FeedCard
+                  key={post.id}
+                  post={post}
+                  myUserId={myUserId}
+                  myReaction={post.myReaction}
+                  reactionCounts={post.reactionCounts}
+                  isTop={stackIdx === 0}
+                  stackIndex={stackIdx}
+                  onSwipeAway={() => setCurrentIndex(i => i + 1)}
+                />
+              )
+            })}
+          </>
+        )}
       </div>
     </div>
   )
